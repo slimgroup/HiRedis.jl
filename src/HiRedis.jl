@@ -174,11 +174,11 @@ function get_result(redisReply::Ptr{RedisReply})
     if r.rtype == REDIS_REPLY_STRING
         ret = unsafe_string(r.str)
     elseif r.rtype == REDIS_REPLY_INTEGER
-        ret = int(r.integer)
+        ret = Int(r.integer)
     elseif r.rtype == REDIS_REPLY_ARRAY
-        n = int(r.elements)
+        n = Int(r.elements)
         results = AbstractString[]
-        replies = pointer_to_array(r.element, n)
+        replies = unsafe_wrap(Array, r.element, n)
         for i in 1:n
             ri = unsafe_load(replies[i])
             push!(results, unsafe_string(ri.str))
@@ -209,7 +209,7 @@ function do_command(command::AbstractString)
 #         error("redisContext not defined. Please call RedisClient.start_session.")
         start_session()
     end
-    debug(string("RedisClient.do_command: ", command))
+    #debug(string("RedisClient.do_command: ", command))
     redisReply = ccall((:redisvCommand, "libhiredis"), Ptr{RedisReply}, (Ptr{RedisContext}, Ptr{UInt8}), redisContext::Ptr{RedisContext}, command)
     get_result(redisReply)
 end
@@ -227,6 +227,7 @@ end
 function docommand(cmd::AbstractString, pipeline::Bool)
     (pipeline || (pipelinedCommandCount::Int > 0)) ? pipeline_command(cmd) : do_command(cmd)
 end
+docommand(cmd::AbstractString) = do_command(cmd)
 
 # @doc "Set the string value of a key." Dict{Any,Any}(
 #     :params => Dict(
